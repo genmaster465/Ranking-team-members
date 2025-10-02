@@ -1,0 +1,89 @@
+Make app I would separate this app to two project(admin , user). 
+Make them each other.
+I total mean other project folder. 
+
+Project 
+|_Admin 
+| |_backend 
+| |_frontend 
+|_User 
+  |_backend 
+  |_frontend 
+
+Admin project developed like backend FastAPI and frontend React+ TS + Material UI. 
+User project developed like backend Flask and frontend React +TS+ Tailwind. 
+Both of them use one database. Mongo atlas , Mongoengine. 
+I would store admins and users info in seperate collection. 
+don't need is_active in Template. 
+don't need reverse_delete_rule=DENY in created_by in Template Document, why you use report document I would store admins and users info in seperate collection. 
+
+All users and admins can login, logout, signup. 
+Admins can manage users - edit user , delete user, insert user. 
+Admins can submit scores for each field of the template. 
+Admins can manage template (add, delete, update template's field title , field's weight(type float)). 
+Admins have a page of rating. 
+User project has pages for control and manage, include (scores, users, scores history, templates ...)
+
+
+In frontend I can see the user(login)'s info in header bar.
+Users(not admin) can rating other's(except self, only user) score(0~100) about all of template's field, so Score collection should contain user(rater I mean sign in user), user(target) and template(structed like array[templateField and value(type float)]) and date(can be changed, default inserted date) Users can see all of rating history. 
+User project has pages include (scores view, users list(only view), scores history(only view), templates(only view) ...)
+
+And table that show total value's per users. 
+All collection's can be filteralble. 
+In my think, admin project and user project has same models. except for admin.
+
+I need seed data can migrate.
+I've already make a model.
+Let me show you.
+
+
+class Admin(Document):
+    meta = {'collection': 'admins', 'indexes': ['email'], 'strict': False}
+    email = EmailField(required=True, unique=True)
+    password_hash = StringField(required=True)
+    name = StringField()
+    created_at = DateTimeField(default=datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.utcnow)
+
+class User(Document):
+    meta = {
+        "collection": "users",
+        "indexes": [
+            {"fields": ["email"], "unique": True, "name": "uniq_email"}
+        ]
+    }
+    name = StringField(required=True, max_length=120)
+    email = EmailField(required=True, unique=True)
+    password_hash = StringField(required=True)  # bcrypt
+    is_admin = BooleanField(default=False)
+    created_at = DateTimeField(default=datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.utcnow)
+
+class TemplateField(EmbeddedDocument):
+    title = StringField(required=True, max_length=120)
+    weight = FloatField(required=True, min_value=0)
+
+class Template(Document):
+    meta = {"collection": "templates"}
+    name = StringField(required=True, max_length=120)
+    fields = ListField(EmbeddedDocumentField(TemplateField), default=[])
+    created_at = DateTimeField(default=datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.utcnow)
+
+class Score(Document):
+    meta = {
+        "collection": "scores",
+        "indexes": [
+            {"fields": ["rater", "target", "template", "-rated_at"], "name": "by_rater_target_tmpl"},
+            {"fields": ["target", "-rated_at"], "name": "by_target_recent"}
+        ]
+    }
+    rater = ReferenceField(User, required=True)   # who rates
+    target = ReferenceField(User, required=True)  # who gets rated
+    template = ReferenceField(Template, required=True)
+    values = ListField(FloatField(min_value=0, max_value=100), required=True)  # aligned with template.fields
+    rated_at = DateTimeField(default=datetime.utcnow)
+    note = StringField()
+
+let me download project.zip
